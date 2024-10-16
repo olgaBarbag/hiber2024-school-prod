@@ -71,7 +71,7 @@ public class App {
         TypedQuery<Object[]> query8 = em.createQuery(sql8, Object[].class);
         List<Object[]> orderByLastnameTitle = query8.getResultList();
 
-        /* Select teachers that do not teach a course*/
+        /* Teachers that do not teach a course*/
         String sql9 = "SELECT t FROM Teacher t LEFT JOIN t.courses c WHERE c IS NULL";
         TypedQuery<Teacher> query9 = em.createQuery(sql9, Teacher.class);
         List<Teacher> teacherWithNoCourse = query9.getResultList();
@@ -129,6 +129,26 @@ public class App {
         queryCourseTeacher.multiselect(cRoot.get("title"), tJoin.get("lastname"), tJoin.get("firstname"));
         List<Object[]> coursesTeachers = em.createQuery(queryCourseTeacher).getResultList();
 
+        /* Teachers that do not teach a course*/
+        CriteriaQuery<Teacher> queryTeacherNoCourse = cb.createQuery(Teacher.class);
+        Root<Teacher> teacherR = queryTeacherNoCourse.from(Teacher.class);
+        //Indirect Join
+        queryTeacherNoCourse.select(teacherR).where(cb.isEmpty(teacherR.get("courses")));
+        List<Teacher> teachersNoCourse = em.createQuery(queryTeacherNoCourse).getResultList();
+
+        /*List of teachers and the number of courses they teach*/
+        CriteriaQuery<Object[]> queryTeacherCourses = cb.createQuery(Object[].class);
+        Root<Teacher> rootTeacher = queryTeacherCourses.from(Teacher.class);
+        Join<Teacher, Course> joinCourse = rootTeacher.join("courses", JoinType.LEFT);
+        queryTeacherCourses.multiselect(rootTeacher.get("firstname"), rootTeacher.get("lastname"), cb.count(joinCourse)).groupBy(rootTeacher.get("firstname"),rootTeacher.get("lastname"));
+        List<Object[]> TeacherCourses = em.createQuery(queryTeacherCourses).getResultList();
+
+        /*Teacher teaching specific course*/
+        CriteriaQuery<Teacher> queryTeacherSpecificCourse = cb.createQuery(Teacher.class);
+        Root<Teacher> rootT = queryTeacherSpecificCourse.from(Teacher.class);
+        //Join<Teacher, Course> joinC = rootT.join("courses", JoinType.LEFT);
+        queryTeacherSpecificCourse.select(rootT).where(cb.equal(rootT.get("courses").get("title"), "SQL"));
+        List<Teacher> teacherSpecificCourse = em.createQuery(queryTeacherSpecificCourse).getResultList();
 
         em.getTransaction().commit();
 
@@ -168,7 +188,17 @@ public class App {
 //            System.out.println();
 //        }
 
-        teacherWithNoCourse.forEach(System.out::println);
+       // teacherWithNoCourse.forEach(System.out::println);
+
+
+//        for(Object[] row : TeacherCourses) {
+//            for(Object col : row) {
+//                System.out.print(col + " ");
+//            }
+//            System.out.println();
+//        }
+
+        teacherSpecificCourse.forEach(System.out::println);
 
         emf.close();
         em.close();
