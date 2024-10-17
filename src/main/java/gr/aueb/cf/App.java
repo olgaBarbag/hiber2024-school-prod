@@ -147,8 +147,21 @@ public class App {
         CriteriaQuery<Teacher> queryTeacherSpecificCourse = cb.createQuery(Teacher.class);
         Root<Teacher> rootT = queryTeacherSpecificCourse.from(Teacher.class);
         //Join<Teacher, Course> joinC = rootT.join("courses", JoinType.LEFT);
-        queryTeacherSpecificCourse.select(rootT).where(cb.equal(rootT.get("courses").get("title"), "SQL"));
-        List<Teacher> teacherSpecificCourse = em.createQuery(queryTeacherSpecificCourse).getResultList();
+
+        //Avoiding SQL Injection >> Set ParameterExpression
+        ParameterExpression<String> courseParam = cb.parameter(String.class, "title");
+       // queryTeacherSpecificCourse.select(rootT).where(cb.equal(rootT.get("courses").get("title"), "SQL"));
+        queryTeacherSpecificCourse.select(rootT).where(cb.equal(rootT.get("courses").get("title"), courseParam));
+        List<Teacher> teacherSpecificCourse = em.createQuery(queryTeacherSpecificCourse).setParameter("title", "SQL").getResultList();
+
+        /*Teacher whose firstname starts with a specific letter and teaches more than 1 courses*/
+        CriteriaQuery<Teacher> queryFirstnameStartsWith = cb.createQuery(Teacher.class);
+        Root<Teacher> teacherRootL = queryFirstnameStartsWith.from(Teacher.class);
+        ParameterExpression<String> letterParam = cb.parameter(String.class, "firstnameLike");
+        queryFirstnameStartsWith.select(teacherRootL).where(cb.like(teacherRootL.get("firstname"), letterParam), cb.greaterThan(cb.size(teacherRootL.get("courses")), 1));
+        List<Teacher> teachersFirstnameStartsWith = em.createQuery(queryFirstnameStartsWith).setParameter("firstnameLike", "K%").getResultList();
+
+
 
         em.getTransaction().commit();
 
@@ -198,7 +211,8 @@ public class App {
 //            System.out.println();
 //        }
 
-        teacherSpecificCourse.forEach(System.out::println);
+        //teacherSpecificCourse.forEach(System.out::println);
+        teachersFirstnameStartsWith.forEach(System.out::println);
 
         emf.close();
         em.close();
